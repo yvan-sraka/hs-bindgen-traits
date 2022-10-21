@@ -22,7 +22,7 @@ impl ToString for HsType {
         match self {
             HsType::CString => "CString".to_string(),
             HsType::Empty => "()".to_string(),
-            HsType::IO(x) => format!("IO ({})", x.to_string()),
+            HsType::IO(x) => format!("IO {}", x.to_string()),
         }
     }
 }
