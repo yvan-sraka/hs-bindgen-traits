@@ -17,24 +17,33 @@ pub enum HsType {
     IO(Box<HsType>),
 }
 
-impl ToString for HsType {
-    fn to_string(&self) -> String {
-        match self {
-            HsType::CString => "CString".to_string(),
-            HsType::Empty => "()".to_string(),
-            HsType::IO(x) => format!("IO {}", x.to_string()),
-        }
+impl std::fmt::Display for HsType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                HsType::CString => "CString".to_string(),
+                HsType::Empty => "()".to_string(),
+                HsType::IO(x) => format!("IO {}", x),
+            }
+        )
     }
 }
 
 impl FromStr for HsType {
-    type Err = ();
+    type Err = String; // FIXME: rather use thiserror
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
+        match s.trim() {
             "CString" => Ok(HsType::CString),
             "()" => Ok(HsType::Empty),
-            _ => Err(()),
+            // FIXME: better parse HsType::IO ...
+            "IO()" => Ok(HsType::IO(Box::new(HsType::Empty))),
+            x => Err(format!(
+                "type `{x}` isn't in the list of supported Haskell types
+consider opening an issue https://github.com/yvan-sraka/hs-bindgen-traits"
+            )),
         }
     }
 }
