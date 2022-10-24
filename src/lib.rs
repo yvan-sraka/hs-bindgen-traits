@@ -5,9 +5,11 @@
 //! type from and into a C-FFI safe target type (that match the memory layout of
 //! an Haskell type).
 
+use displaydoc::Display;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::str::FromStr;
+use thiserror::Error;
 
 /// Enumeration of all Haskell F-FFI safe types as the string representation of
 /// their token in Haskell.
@@ -31,19 +33,27 @@ impl std::fmt::Display for HsType {
     }
 }
 
+#[derive(Display, Error, Debug)]
+pub enum Error {
+    /** type `{0}` isn't in the list of supported Haskell types.
+     * Consider opening an issue https://github.com/yvan-sraka/hs-bindgen-traits
+     */
+    UnsupportedHsType(String),
+}
+
 impl FromStr for HsType {
-    type Err = String; // FIXME: rather use thiserror
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.trim() {
-            "CString" => Ok(HsType::CString),
-            "()" => Ok(HsType::Empty),
-            // FIXME: better parse HsType::IO ...
-            "IO()" => Ok(HsType::IO(Box::new(HsType::Empty))),
-            x => Err(format!(
-                "type `{x}` isn't in the list of supported Haskell types
-consider opening an issue https://github.com/yvan-sraka/hs-bindgen-traits"
-            )),
+        let s = s.trim();
+        if &s[..2] == "IO" {
+            Ok(HsType::IO(Box::new(s[2..].parse()?)))
+        } else {
+            match s.trim() {
+                "CString" => Ok(HsType::CString),
+                "()" => Ok(HsType::Empty),
+                ty => Err(Error::UnsupportedHsType(ty.to_string())),
+            }
         }
     }
 }
@@ -104,5 +114,16 @@ impl ReprC<*const std::os::raw::c_char> for String {
     fn from(x: *const std::os::raw::c_char) -> Self {
         let r: &str = ReprC::from(x);
         r.to_string()
+    }
+}
+
+/// Generate Rust safe wrapper from a given C-FFI type.
+pub trait ReprRust<T> {
+    fn from(_: T) -> Self;
+}
+
+impl ReprRust<()> for () {
+    fn from(_: ()) -> Self {
+        ()
     }
 }
