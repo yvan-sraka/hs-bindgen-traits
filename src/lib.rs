@@ -46,7 +46,7 @@ impl FromStr for HsType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.trim();
-        if &s[..2] == "IO" {
+        if s.len() >= 2 && &s[..2] == "IO" {
             Ok(HsType::IO(Box::new(s[2..].parse()?)))
         } else {
             match s.trim() {
