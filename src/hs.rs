@@ -43,7 +43,9 @@ pub enum HsType {
     CFloat,
     /// `()`
     Empty,
-    /// `IO`
+    /// `Ptr T`
+    Ptr(Box<HsType>),
+    /// `IO T`
     IO(Box<HsType>),
 }
 
@@ -69,6 +71,7 @@ impl std::fmt::Display for HsType {
                 HsType::CULong => "CULong".to_string(),
                 HsType::CUShort => "CUShort".to_string(),
                 HsType::Empty => "()".to_string(),
+                HsType::Ptr(x) => format!("Ptr {}", x),
                 HsType::IO(x) => format!("IO {}", x),
             }
         )
@@ -102,6 +105,8 @@ impl FromStr for HsType {
                 .parse()?)
         } else if s.len() >= 2 && &s[..2] == "IO" {
             Ok(HsType::IO(Box::new(s[2..].parse()?)))
+        } else if s.len() >= 3 && &s[..3] == "Ptr" {
+            Ok(HsType::Ptr(Box::new(s[3..].parse()?)))
         } else {
             match s {
                 "CBool" => Ok(HsType::CBool),
@@ -135,6 +140,7 @@ impl HsType {
     /// c.f. https://doc.rust-lang.org/core/ffi/
     pub fn quote(&self) -> TokenStream {
         match self {
+            // FIXME: add https://doc.rust-lang.org/core/ffi/enum.c_void.html
             HsType::CBool => quote! { bool },
             HsType::CChar => quote! { core::ffi::c_char },
             HsType::CDouble => quote! { core::ffi::c_double },
@@ -144,13 +150,17 @@ impl HsType {
             HsType::CLong => quote! { core::ffi::c_long },
             HsType::CSChar => quote! { core::ffi::c_schar },
             HsType::CShort => quote! { core::ffi::c_short },
-            HsType::CString => quote! { *const core::ffi::c_char },
+            HsType::CString => HsType::Ptr(Box::new(HsType::CChar)).quote(),
             HsType::CUChar => quote! { core::ffi::c_uchar },
             HsType::CUInt => quote! { core::ffi::c_uint },
             HsType::CULLong => quote! { core::ffi::c_ulonglong },
             HsType::CULong => quote! { core::ffi::c_ulong },
             HsType::CUShort => quote! { core::ffi::c_ushort },
             HsType::Empty => quote! { () },
+            HsType::Ptr(x) => {
+                let ty = x.quote();
+                quote! { *const #ty }
+            }
             HsType::IO(x) => x.quote(),
         }
     }
