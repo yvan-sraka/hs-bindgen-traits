@@ -1,4 +1,4 @@
-use crate::{private, repr_hs_ptr, HsType, ReprC, ReprHs, ReprRust};
+use crate::{private, HsType, ReprC, ReprHs, ReprRust};
 
 // FIXME: study what could be a good `Vec<T>`/`&[T]` traits ergonomics ...
 // n.b. the concept of `slice` have no C equivalent ...
@@ -37,8 +37,23 @@ where
     }
 }
 
-repr_hs_ptr!(&[T]);
-repr_hs_ptr!(Vec<T>);
+impl<T> ReprHs for Vec<T>
+where
+    T: ReprHs,
+{
+    fn into() -> HsType {
+        HsType::Ptr(Box::new(T::into()))
+    }
+}
+
+impl<T, const N: usize> ReprHs for &[T; N]
+where
+    T: ReprHs,
+{
+    fn into() -> HsType {
+        HsType::Ptr(Box::new(T::into()))
+    }
+}
 
 #[test]
 fn _1() {

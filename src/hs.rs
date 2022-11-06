@@ -71,8 +71,8 @@ impl std::fmt::Display for HsType {
                 HsType::CULong => "CULong".to_string(),
                 HsType::CUShort => "CUShort".to_string(),
                 HsType::Empty => "()".to_string(),
-                HsType::Ptr(x) => format!("Ptr {}", x),
-                HsType::IO(x) => format!("IO {}", x),
+                HsType::Ptr(x) => format!("Ptr ({})", x),
+                HsType::IO(x) => format!("IO ({})", x),
             }
         )
     }

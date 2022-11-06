@@ -102,21 +102,14 @@ repr_hs! {
     c_ushort => CUShort,
 }
 
-macro_rules! repr_hs_ptr {
-    ($ty:ty) => {
-        impl<T> ReprHs for $ty
-        where
-            T: ReprHs,
-        {
-            fn into() -> HsType {
-                HsType::Ptr(Box::new(T::into()))
-            }
-        }
-    };
+impl<T> ReprHs for *const T
+where
+    T: ReprHs,
+{
+    fn into() -> HsType {
+        HsType::Ptr(Box::new(T::into()))
+    }
 }
-pub(crate) use repr_hs_ptr;
-
-repr_hs_ptr!(*const T);
 
 /// This is used by Rust function that doesn’t return any value
 /// (`void` C equivalent).
