@@ -11,10 +11,11 @@ where
     #[inline]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn from(ptr: *const T) -> Self {
-        unsafe {
-            let x = std::slice::from_raw_parts(ptr, N);
-            std::mem::transmute_copy::<&[T], &[T; N]>(&x)
-        }
+        let s = unsafe { std::slice::from_raw_parts(ptr, N) };
+        s.try_into().unwrap_or_else(|_| {
+            let ty = std::any::type_name::<T>();
+            panic!("impossible to convert &[{ty}] into &[{ty}; {N}]");
+        })
     }
 }
 
