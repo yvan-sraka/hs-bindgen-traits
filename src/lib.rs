@@ -29,12 +29,17 @@
 //! for inclusion in this project by you, as defined in the Apache-2.0 license,
 //! shall be dual licensed as above, without any additional terms or conditions.
 
-mod hs;
-mod str;
-mod vec;
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), forbid(unsafe_code))]
 
+#[cfg(feature = "std")]
+mod hs;
+#[cfg(feature = "std")]
+mod str;
+#[cfg(feature = "std")]
+mod vec;
+#[cfg(feature = "std")]
 pub use self::{hs::*, str::*, vec::*};
-use core::ffi::*;
 
 /// Generate C-FFI cast from a given Rust type.
 pub trait ReprC<T>: private::CFFISafe {
@@ -54,6 +59,7 @@ mod private {
     macro_rules! c_ffi_safe {
         ($($ty:ty),*) => {$(
             impl CFFISafe for $ty {}
+            // `*const T` is C-FFI safe if `T` is C-FFI safe
             impl CFFISafe for *const $ty {}
         )*};
     }
@@ -72,6 +78,7 @@ macro_rules! transparent {
             #[inline]
             fn from(x: $ty) -> Self { x }
         }
+
         impl ReprRust<*const $ty> for *const $ty {
             #[inline]
             fn from(x: *const $ty) -> Self { x }
@@ -86,51 +93,9 @@ macro_rules! transparent {
 // C-FFI safe type trivially implement both traits
 transparent![i8, i16, i32, i64, u8, u16, u32, u64, f32, f64];
 
-/// Turn a given Rust type into his `HsType` target.
-///
-/// Deducing what's the right Haskell type target given an arbitrary Rust type
-/// is provided by `antlion` feature of `hs-bingen-derive` and rely mostly on
-/// Rust type inference through this trait.
-pub trait ReprHs {
-    fn into() -> HsType;
-}
-
-macro_rules! repr_hs {
-    ($($ty:ty => $ident:ident,)*) => {$(
-        impl ReprHs for $ty {
-            fn into() -> HsType {
-                HsType::$ident
-            }
-        }
-    )*};
-}
-pub(crate) use repr_hs;
-
-repr_hs! {
-    c_char   => CChar,
-    c_double => CDouble,
-    c_float  => CFloat,
-    c_int    => CInt,
-    c_long   => CLong,
-    c_short  => CShort,
-    c_uchar  => CUChar,
-    c_uint   => CUInt,
-    c_ulong  => CULong,
-    c_ushort => CUShort,
-}
-
-impl<T> ReprHs for *const T
-where
-    T: ReprHs,
-{
-    fn into() -> HsType {
-        HsType::Ptr(Box::new(T::into()))
-    }
-}
-
 /// This is used by Rust function that doesn’t return any value
 /// (`void` C equivalent).
 impl ReprC<()> for () {
+    #[inline]
     fn from(_: ()) -> Self {}
 }
-repr_hs! { () => Empty, }

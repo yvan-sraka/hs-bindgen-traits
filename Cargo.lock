@@ -15,7 +15,7 @@ dependencies = [
 
 [[package]]
 name = "hs-bindgen-traits"
-version = "0.6.3"
+version = "0.7.0"
 dependencies = [
  "displaydoc",
  "proc-macro2",

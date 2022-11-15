@@ -1,7 +1,10 @@
+//! FIXME: this module could be ultimately moved into an `hs-bindgen-types`
+//! crate on which would only depend `antlion` and `hs-bindgen-derive`
+
+use core::ffi::*;
 use displaydoc::Display;
 use proc_macro2::TokenStream;
 use quote::quote;
-use std::str::FromStr;
 use thiserror::Error;
 
 /// Enumeration of all Haskell C-FFI safe types as the string representation of
@@ -10,6 +13,7 @@ use thiserror::Error;
 /// FIXME: `Errno(c_int)` should be implemented as a Rust `enum` ...
 /// https://hackage.haskell.org/package/base/docs/Foreign-C-Error.html
 /// ... using `#[repr(i32)]` https://doc.rust-lang.org/nomicon/other-reprs.html
+#[non_exhaustive]
 pub enum HsType {
     /// `Int32`
     CInt,
@@ -71,14 +75,14 @@ impl std::fmt::Display for HsType {
                 HsType::CULong => "CULong".to_string(),
                 HsType::CUShort => "CUShort".to_string(),
                 HsType::Empty => "()".to_string(),
-                HsType::Ptr(x) => format!("Ptr ({})", x),
-                HsType::IO(x) => format!("IO ({})", x),
+                HsType::Ptr(x) => format!("Ptr ({x})"),
+                HsType::IO(x) => format!("IO ({x})"),
             }
         )
     }
 }
 
-#[derive(Display, Error, Debug)]
+#[derive(Debug, Display, Error)]
 pub enum Error {
     /** type `{0}` isn't in the list of supported Haskell C-FFI types.
      * Consider opening an issue https://github.com/yvan-sraka/hs-bindgen-traits
@@ -91,7 +95,7 @@ pub enum Error {
     UnmatchedParenthesis,
 }
 
-impl FromStr for HsType {
+impl std::str::FromStr for HsType {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -163,5 +167,48 @@ impl HsType {
             }
             HsType::IO(x) => x.quote(),
         }
+    }
+}
+
+/// Turn a given Rust type into his `HsType` target.
+///
+/// Deducing what's the right Haskell type target given an arbitrary Rust type
+/// is provided by `antlion` feature of `hs-bingen-derive` and rely mostly on
+/// Rust type inference through this trait.
+pub trait ReprHs {
+    fn into() -> HsType;
+}
+
+macro_rules! repr_hs {
+    ($($ty:ty => $ident:ident,)*) => {$(
+        impl ReprHs for $ty {
+            fn into() -> HsType {
+                HsType::$ident
+            }
+        }
+    )*};
+}
+pub(crate) use repr_hs;
+
+repr_hs! {
+    c_char   => CChar,
+    c_double => CDouble,
+    c_float  => CFloat,
+    c_int    => CInt,
+    c_long   => CLong,
+    c_short  => CShort,
+    c_uchar  => CUChar,
+    c_uint   => CUInt,
+    c_ulong  => CULong,
+    c_ushort => CUShort,
+    ()       => Empty,
+}
+
+impl<T> ReprHs for *const T
+where
+    T: ReprHs,
+{
+    fn into() -> HsType {
+        HsType::Ptr(Box::new(T::into()))
     }
 }
