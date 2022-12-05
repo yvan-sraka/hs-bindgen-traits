@@ -1,4 +1,4 @@
-use crate::{private, HsType, ReprC, ReprHs, ReprRust};
+use crate::{ReprRust, private, ReprC};
 
 // FIXME: study what could be a good `Vec<T>`/`&[T]` traits ergonomics ...
 // n.b. the concept of `slice` have no C equivalent ...
@@ -35,24 +35,6 @@ where
         // if not, we should export a utility function to let user drop
         // the value, this technique was suggested e.g. here:
         // https://stackoverflow.com/questions/39224904
-    }
-}
-
-impl<T> ReprHs for Vec<T>
-where
-    T: ReprHs,
-{
-    fn into() -> HsType {
-        HsType::Ptr(Box::new(T::into()))
-    }
-}
-
-impl<T, const N: usize> ReprHs for &[T; N]
-where
-    T: ReprHs,
-{
-    fn into() -> HsType {
-        HsType::Ptr(Box::new(T::into()))
     }
 }
 

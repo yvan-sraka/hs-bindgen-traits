@@ -1,15 +1,8 @@
 //! This module defines convenient traits to let user-defined function take as
 //! argument or return type either `CString`, `&CStr`, `String` or `&str`
 
-use crate::{repr_hs, HsType, ReprC, ReprHs, ReprRust};
+use crate::{ReprC, ReprRust};
 use std::ffi::{c_char, CStr, CString};
-
-repr_hs! {
-    CString => CString,
-    &CStr   => CString,
-    String  => CString,
-    &str    => CString,
-}
 
 impl ReprRust<*const c_char> for CString {
     #[inline]

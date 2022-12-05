@@ -33,13 +33,11 @@
 #![cfg_attr(not(feature = "std"), forbid(unsafe_code))]
 
 #[cfg(feature = "std")]
-mod hs;
-#[cfg(feature = "std")]
 mod str;
 #[cfg(feature = "std")]
 mod vec;
 #[cfg(feature = "std")]
-pub use self::{hs::*, str::*, vec::*};
+pub use self::{str::*, vec::*};
 
 /// Generate C-FFI cast from a given Rust type.
 pub trait ReprC<T>: private::CFFISafe {
