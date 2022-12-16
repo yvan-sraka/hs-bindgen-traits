@@ -97,3 +97,12 @@ impl ReprC<()> for () {
     #[inline]
     fn from(_: ()) -> Self {}
 }
+
+impl<T> ReprRust<*const T> for *mut T
+where
+    *const T: private::CFFISafe,
+{
+    fn from(x: *const T) -> Self {
+        x as *mut T
+    }
+}
