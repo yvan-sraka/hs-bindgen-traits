@@ -11,7 +11,7 @@
         pkgs = import nixpkgs { inherit system overlays; };
       in with pkgs; {
         devShells.default = mkShell {
-          buildInputs = [ (rust-bin.fromRustupToolchainFile ./rust-toolchain) ];
+          buildInputs = [ (rust-bin.fromRustupToolchainFile ./rust-toolchain) rust-analyzer ];
         };
       });
 }
