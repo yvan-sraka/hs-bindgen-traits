@@ -40,13 +40,52 @@ mod vec;
 pub use self::{str::*, vec::*};
 
 /// Generate C-FFI cast from a given Rust type.
-pub trait ReprC<T>: private::CFFISafe {
+///
+/// `impl FromReprC<Foo> for Bar` -> means `from` Rust `Foo` type into C `Bar` repr
+pub trait FromReprC<T>: private::CFFISafe {
+    #[must_use]
     fn from(_: T) -> Self;
 }
 
+/// `impl IntoReprC<Foo> for Bar` -> means `from` C `Foo` type into Rust `Bar` repr
+pub trait IntoReprC<T> {
+    #[must_use]
+    fn into(self) -> T;
+}
+
+impl<T, U> IntoReprC<U> for T
+where
+    U: FromReprC<T>,
+    T: private::CFFISafe,
+{
+    #[inline]
+    fn into(self) -> U {
+        U::from(self)
+    }
+}
+
 /// Generate safe Rust wrapper from a given C-FFI type.
-pub trait ReprRust<T: private::CFFISafe> {
+///
+/// `impl FromReprRust<Foo> for Bar` -> means `from` C `Foo` type into Rust `Bar` repr
+pub trait FromReprRust<T: private::CFFISafe> {
+    #[must_use]
     fn from(_: T) -> Self;
+}
+
+/// `impl IntoReprRust<Foo> for Bar` -> means `from` Rust `Foo` type into C `Bar` repr
+pub trait IntoReprRust<T> {
+    #[must_use]
+    fn into(self) -> T;
+}
+
+impl<T, U> IntoReprRust<U> for T
+where
+    U: FromReprRust<T>,
+    T: private::CFFISafe,
+{
+    fn into(self) -> U {
+        U::from(self)
+    }
 }
 
 mod private {
@@ -68,20 +107,20 @@ mod private {
 
 macro_rules! transparent {
     ($($ty:ty),*) => {$(
-        impl ReprRust<$ty> for $ty {
+        impl FromReprRust<$ty> for $ty {
             #[inline]
             fn from(x: $ty) -> Self { x }
         }
-        impl ReprC<$ty> for $ty {
+        impl FromReprC<$ty> for $ty {
             #[inline]
             fn from(x: $ty) -> Self { x }
         }
 
-        impl ReprRust<*const $ty> for *const $ty {
+        impl FromReprRust<*const $ty> for *const $ty {
             #[inline]
             fn from(x: *const $ty) -> Self { x }
         }
-        impl ReprC<*const $ty> for *const $ty {
+        impl FromReprC<*const $ty> for *const $ty {
             #[inline]
             fn from(x: *const $ty) -> Self { x }
         }
@@ -93,15 +132,16 @@ transparent![i8, i16, i32, i64, u8, u16, u32, u64, f32, f64];
 
 /// This is used by Rust function that doesn’t return any value
 /// (`void` C equivalent).
-impl ReprC<()> for () {
+impl FromReprC<()> for () {
     #[inline]
     fn from(_: ()) -> Self {}
 }
 
-impl<T> ReprRust<*const T> for *mut T
+impl<T> FromReprRust<*const T> for *mut T
 where
     *const T: private::CFFISafe,
 {
+    #[inline]
     fn from(x: *const T) -> Self {
         x as *mut T
     }
