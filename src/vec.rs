@@ -1,10 +1,10 @@
-use crate::{private, ReprC, ReprRust};
+use crate::{private, FromReprC, FromReprRust};
 
 // FIXME: study what could be a good `Vec<T>`/`&[T]` traits ergonomics ...
 // n.b. the concept of `slice` have no C equivalent ...
 // https://users.rust-lang.org/t/55118
 
-impl<T, const N: usize> ReprRust<*const T> for &[T; N]
+impl<T, const N: usize> FromReprRust<*const T> for &[T; N]
 where
     *const T: private::CFFISafe,
 {
@@ -19,13 +19,13 @@ where
     }
 }
 
-impl<T> ReprC<Vec<T>> for *const T
+impl<T> FromReprC<Vec<T>> for *const T
 where
     *const T: private::CFFISafe,
 {
     #[inline]
     fn from(v: Vec<T>) -> Self {
-        let x = v.as_ptr();
+        let x: *const T = v.as_ptr();
         // since the value is passed to Haskell runtime we want Rust to never
         // drop it!
         std::mem::forget(v);
@@ -41,6 +41,6 @@ where
 #[test]
 fn _1() {
     let x = &[1, 2, 3]; // FIXME: use Arbitrary crate
-    let y: &[i32; 3] = ReprRust::from(ReprC::from(x.to_vec()));
+    let y: &[i32; 3] = FromReprRust::from(FromReprC::from(x.to_vec()));
     assert!(x == y);
 }
